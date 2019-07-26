@@ -2,7 +2,7 @@ const { resolve, basename } = require('path');
 const {
   app, Menu, Tray, dialog,
 } = require('electron');
-const { spawn, exec } = require('child_process');
+const { spawn } = require('child_process');
 const Store = require('electron-store');
 
 const schema = {
@@ -10,7 +10,7 @@ const schema = {
     type: 'string',
   },
 };
-
+const isWindows = process.platform.includes('win');
 const store = new Store({ schema });
 
 if (app.dock) {
@@ -18,6 +18,7 @@ if (app.dock) {
 }
 
 let tray = null;
+let trayPosition = {};
 
 function render() {
   const storedProjects = store.get('projects');
@@ -29,16 +30,13 @@ function render() {
       {
         label: 'Open in VSCode',
         click: () => {
-          if (process.platform === 'win32') {
-            exec(`code ${project.path}`);
-            return;
-          }
           spawn('code', [project.path], {
             cwd: process.cwd(),
             env: {
               PATH: process.env.PATH,
             },
             stdio: 'inherit',
+            shell: isWindows,
           });
         },
       },
@@ -51,6 +49,8 @@ function render() {
           );
 
           render();
+
+          if (trayPosition) tray.popUpContextMenu(null, trayPosition);
         },
       },
     ],
@@ -97,6 +97,10 @@ function render() {
   ]);
 
   tray.setContextMenu(contextMenu);
+  tray.on('click', (event, boundaries, position) => {
+    tray.popUpContextMenu();
+    trayPosition = position;
+  });
 }
 
 app.on('ready', () => {
