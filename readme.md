@@ -1,0 +1,1 @@
+# Simple VSCode Project Manager
